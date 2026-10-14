@@ -1,0 +1,84 @@
+# Camunda 8.10 local para la POC SCOTIAFLOW-363.
+# Version reducida del compose ligero oficial (camunda/camunda-distributions,
+# docker-compose/versions/camunda-8.10/docker-compose.yaml): solo el contenedor
+# orchestration (Zeebe + Operate + Tasklist + Admin) con H2 en archivo como
+# almacenamiento secundario. Sin Elasticsearch ni Connectors.
+# Solo para desarrollo local: la API acepta llamadas sin token.
+services:
+  camunda-data-init:
+    image: camunda/camunda:${CAMUNDA_VERSION:-8.10.3}
+    user: "0:0"
+    entrypoint: ["/bin/sh", "-c", "chown -R 1001:1001 /usr/local/camunda/camunda-data && chmod 775 /usr/local/camunda/camunda-data"]
+    volumes:
+      - camunda-data:/usr/local/camunda/camunda-data
+    restart: "no"
+
+  orchestration:
+    image: camunda/camunda:${CAMUNDA_VERSION:-8.10.3}
+    container_name: orchestration
+    ports:
+      - "26500:26500"   # gRPC de Zeebe
+      - "8080:8080"     # Operate / Tasklist / API REST v2
+      - "9600:9600"     # health y metricas
+    mem_limit: 1g
+    restart: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/9600 && echo -e \"GET /actuator/health/status HTTP/1.1\r\nHost: localhost\r\n\r\n\" >&3 && head -n 1 <&3'"]
+      interval: 5s
+      retries: 60
+      start_period: 30s
+    volumes:
+      - camunda:/usr/local/camunda/data
+      - camunda-data:/usr/local/camunda/camunda-data
+    configs:
+      - source: orchestration-config
+        target: /usr/local/camunda/config/application.yaml
+    networks:
+      - camunda
+    depends_on:
+      camunda-data-init:
+        condition: service_completed_successfully
+
+volumes:
+  camunda:
+  camunda-data:
+
+networks:
+  camunda:
+    name: camunda
+
+configs:
+  # Copia de configuration/application-h2.yaml del paquete oficial.
+  orchestration-config:
+    content: |
+      management.endpoints.configprops.show-values: always
+      camunda:
+        backup:
+          webapps:
+            enabled: false
+        system:
+          cpu-thread-count: "3"
+          io-thread-count: "3"
+        security:
+          authentication:
+            method: "basic"
+            unprotectedApi: true
+          authorizations:
+            enabled: false
+          initialization:
+            users:
+              - username: "demo"
+                password: "demo"
+                name: "Demo User"
+                email: "demo@demo.com"
+            defaultRoles.admin.users:
+              - "demo"
+        data:
+          secondary-storage:
+            type: rdbms
+            rdbms:
+              url: jdbc:h2:file:./camunda-data/h2db
+              username: sa
+              password:
+              flushInterval: PT0.5S
+              queueSize: 1000

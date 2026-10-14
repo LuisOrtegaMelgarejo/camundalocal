@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_Main" targetNamespace="http://bpmn.io/schema/bpmn" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.5.0">
+  <bpmn:process id="main-process" name="Proceso principal" isExecutable="true">
+    <bpmn:startEvent id="Start_Main" name="Inicio principal">
+      <bpmn:outgoing>Flow_M1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="UserTask_Main" name="Tarea de usuario principal">
+      <bpmn:incoming>Flow_M1</bpmn:incoming>
+      <bpmn:outgoing>Flow_M2</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:callActivity id="CallActivity_Child" name="Invocar proceso hijo">
+      <bpmn:extensionElements>
+        <zeebe:calledElement processId="child-process" propagateAllParentVariables="true" propagateAllChildVariables="true" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_M2</bpmn:incoming>
+      <bpmn:outgoing>Flow_M3</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:endEvent id="End_Main" name="Fin principal">
+      <bpmn:incoming>Flow_M3</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_M1" sourceRef="Start_Main" targetRef="UserTask_Main" />
+    <bpmn:sequenceFlow id="Flow_M2" sourceRef="UserTask_Main" targetRef="CallActivity_Child" />
+    <bpmn:sequenceFlow id="Flow_M3" sourceRef="CallActivity_Child" targetRef="End_Main" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_Main">
+    <bpmndi:BPMNPlane id="BPMNPlane_Main" bpmnElement="main-process">
+      <bpmndi:BPMNShape id="Start_Main_di" bpmnElement="Start_Main">
+        <dc:Bounds x="152" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="133" y="145" width="75" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="UserTask_Main_di" bpmnElement="UserTask_Main">
+        <dc:Bounds x="240" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="CallActivity_Child_di" bpmnElement="CallActivity_Child">
+        <dc:Bounds x="400" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Main_di" bpmnElement="End_Main">
+        <dc:Bounds x="562" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="548" y="145" width="64" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_M1_di" bpmnElement="Flow_M1">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="188" y="120" />
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="240" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_M2_di" bpmnElement="Flow_M2">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="340" y="120" />
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="400" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_M3_di" bpmnElement="Flow_M3">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="500" y="120" />
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="562" y="120" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

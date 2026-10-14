@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_Child" targetNamespace="http://bpmn.io/schema/bpmn" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.5.0">
+  <bpmn:process id="child-process" name="Proceso hijo (subproceso reutilizable)" isExecutable="true">
+    <bpmn:startEvent id="Start_Child" name="Inicio hijo">
+      <bpmn:outgoing>Flow_C1</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="UserTask_Child" name="Tarea de usuario del subproceso">
+      <bpmn:incoming>Flow_C1</bpmn:incoming>
+      <bpmn:outgoing>Flow_C2</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:endEvent id="End_Child" name="Fin hijo">
+      <bpmn:incoming>Flow_C2</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_C1" sourceRef="Start_Child" targetRef="UserTask_Child" />
+    <bpmn:sequenceFlow id="Flow_C2" sourceRef="UserTask_Child" targetRef="End_Child" />
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_Child">
+    <bpmndi:BPMNPlane id="BPMNPlane_Child" bpmnElement="child-process">
+      <bpmndi:BPMNShape id="Start_Child_di" bpmnElement="Start_Child">
+        <dc:Bounds x="152" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="146" y="145" width="49" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="UserTask_Child_di" bpmnElement="UserTask_Child">
+        <dc:Bounds x="240" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_Child_di" bpmnElement="End_Child">
+        <dc:Bounds x="392" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="391" y="145" width="39" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_C1_di" bpmnElement="Flow_C1">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="188" y="120" />
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="240" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_C2_di" bpmnElement="Flow_C2">
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="340" y="120" />
+        <di:waypoint xmlns:di="http://www.omg.org/spec/DD/20100524/DI" x="392" y="120" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -1,0 +1,13 @@
+{
+  "name": "poc-call-activity-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node worker.js"
+  },
+  "dependencies": {
+    "@camunda8/sdk": "latest",
+    "dotenv": "^16.4.5"
+  }
+}
