@@ -1,0 +1,16 @@
+{
+  "name": "poc2-ticket-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.13" },
+  "scripts": {
+    "deploy": "node src/deploy.js",
+    "start": "node src/server.js",
+    "bench": "node bench/bench.js",
+    "report": "node src/report.js"
+  },
+  "dependencies": {
+    "@camunda8/sdk": "8.8.18"
+  }
+}

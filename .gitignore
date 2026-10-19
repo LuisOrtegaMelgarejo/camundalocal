@@ -35,3 +35,6 @@ desktop.ini
 .DS_Store
 .idea/
 *.swp
+
+# POC 2: base SQLite local del backend
+poc 2/backend/data/
