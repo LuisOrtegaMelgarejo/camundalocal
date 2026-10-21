@@ -61,9 +61,18 @@ async function pollUntilCompleted(id, ticket) {
 
 // POST /tickets/:id/done: el usuario termino su ticket -> ahora si avanza el BPMN.
 async function markDone(id) {
-  const ticket = getTicket(id)
+  let ticket = getTicket(id)
   if (!ticket) throw httpError(404, 'ticket no existe')
   if (ticket.status === 'DONE' || ticket.status === 'CLOSED') return ticket
+  // Un usuario solo puede terminar su ticket cuando ya tiene el formulario: si la cola de
+  // notificaciones lo retrasa, el "done" espera (hasta 2 min) en vez de fallar.
+  const tWait = Date.now()
+  while (!ticket.form && Date.now() - tWait < 120_000) {
+    await new Promise((r) => setTimeout(r, 250))
+    ticket = getTicket(id)
+  }
+  if (!ticket.form) throw httpError(409, 'el ticket no recibio su formulario en 2 min')
+  if (Date.now() - tWait > 250) logEvent(id, ticket.variant, 'done.waitedForm', { ms: Date.now() - tWait })
   logEvent(id, ticket.variant, 'done.requested')
   const t0 = Date.now()
   if (ticket.variant === 'jobworker') {

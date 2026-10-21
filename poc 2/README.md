@@ -95,8 +95,8 @@ Archivo: `backend/results/run-local-2026-10-19T20-52-06-701Z.md`.
 
 - **Volumen**: es la diferencia real y se reprodujo igual en dos corridas. En A cada
   ticket abierto genera `1 + ⌊tiempo_abierto / timeout⌋` mensajes y todos salvo el
-  primero son ruido. Con timeout de 5 min y tickets abiertos 1 h son 13 mensajes
-  por ticket; con 8 h, 97. En B es siempre 1.
+  primero son ruido. Con timeout de 5 min y tickets abiertos 1 h son ≈12 mensajes
+  por ticket; con 8 h, ≈96. En B es siempre 1.
 - **Latencia**: las dos alternativas son equivalentes dentro del ruido. Una corrida
   anterior, con A como service task, había mostrado a B unos 100 ms más lenta; con
   A como user task esa diferencia desapareció (y B salió incluso algo menor). La

@@ -24,7 +24,7 @@ son equivalentes.
   (4 con 35 s abierto y 10 s de timeout) cuadran con la fórmula, y el intervalo
   entre reenvíos fue ~10.8 s, es decir el timeout más el ciclo de polling.
 - El crecimiento es lineal en el tiempo que el ticket está abierto, no en el número
-  de tickets. Con timeout de 5 min: 1 h abierto → 13 mensajes; 8 h → 97; 24 h → 289
+  de tickets. Con timeout de 5 min: 1 h abierto → ≈12 mensajes; 8 h → ≈96; 24 h → ≈288
   por ticket.
 - En B el número de mensajes es constante, sin importar cuánto tarde el usuario.
 - Ninguna alternativa entregó mensajes después del done.
