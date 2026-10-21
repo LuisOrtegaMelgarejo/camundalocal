@@ -1,42 +1,54 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_UserTask" targetNamespace="http://bpmn.io/schema/bpmn" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.8.0">
-  <bpmn:process id="ticket-usertask" name="Ticket - alternativa B (User Task + listener creating)" isExecutable="true">
-    <bpmn:startEvent id="Start" name="Ticket creado">
-      <bpmn:outgoing>Flow_1</bpmn:outgoing>
+<!--
+  Alternativa B. Replica el diagrama pocListener de Web Modeler (cluster SaaS):
+  mismo process id, mismos listeners (logStart, creatingUserTask) y mismo formulario.
+  UNICO AÑADIDO de la POC: el execution listener "ticket-closed" en el end event, para
+  medir cuando el motor avanzo tras el done sin depender del secondary storage.
+-->
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.9.0">
+  <bpmn:process id="pocListener" name="pocListener" isExecutable="true">
+    <bpmn:extensionElements>
+      <zeebe:executionListeners>
+        <zeebe:executionListener eventType="start" type="logStart" />
+      </zeebe:executionListeners>
+    </bpmn:extensionElements>
+    <bpmn:startEvent id="StartEvent_1">
+      <bpmn:extensionElements>
+        <zeebe:executionListeners>
+          <zeebe:executionListener eventType="end" retries="3" type="logStart" />
+        </zeebe:executionListeners>
+      </bpmn:extensionElements>
+      <bpmn:outgoing>Flow_01qtsvb</bpmn:outgoing>
     </bpmn:startEvent>
-    <bpmn:userTask id="Task_Form" name="Llenar formulario del ticket">
+    <bpmn:userTask id="userTask" name="userTask">
       <bpmn:extensionElements>
         <zeebe:userTask />
         <zeebe:taskListeners>
-          <zeebe:taskListener eventType="creating" type="ticket-created" />
+          <zeebe:taskListener eventType="creating" type="creatingUserTask" />
         </zeebe:taskListeners>
+        <zeebe:formDefinition formId="userTaskForm" />
       </bpmn:extensionElements>
-      <bpmn:incoming>Flow_1</bpmn:incoming>
-      <bpmn:outgoing>Flow_2</bpmn:outgoing>
+      <bpmn:incoming>Flow_01qtsvb</bpmn:incoming>
+      <bpmn:outgoing>Flow_0x7njfc</bpmn:outgoing>
     </bpmn:userTask>
-    <bpmn:serviceTask id="Task_Closed" name="Ticket cerrado (medicion)">
+    <bpmn:endEvent id="Event_11ecb5l">
       <bpmn:extensionElements>
-        <zeebe:taskDefinition type="ticket-closed" />
+        <zeebe:executionListeners>
+          <zeebe:executionListener eventType="start" type="ticket-closed" />
+        </zeebe:executionListeners>
       </bpmn:extensionElements>
-      <bpmn:incoming>Flow_2</bpmn:incoming>
-      <bpmn:outgoing>Flow_3</bpmn:outgoing>
-    </bpmn:serviceTask>
-    <bpmn:endEvent id="End" name="Fin">
-      <bpmn:incoming>Flow_3</bpmn:incoming>
+      <bpmn:incoming>Flow_0x7njfc</bpmn:incoming>
     </bpmn:endEvent>
-    <bpmn:sequenceFlow id="Flow_1" sourceRef="Start" targetRef="Task_Form" />
-    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_Form" targetRef="Task_Closed" />
-    <bpmn:sequenceFlow id="Flow_3" sourceRef="Task_Closed" targetRef="End" />
+    <bpmn:sequenceFlow id="Flow_01qtsvb" sourceRef="StartEvent_1" targetRef="userTask" />
+    <bpmn:sequenceFlow id="Flow_0x7njfc" sourceRef="userTask" targetRef="Event_11ecb5l" />
   </bpmn:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
-    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="ticket-usertask">
-      <bpmndi:BPMNShape id="Start_di" bpmnElement="Start"><dc:Bounds x="152" y="102" width="36" height="36" /><bpmndi:BPMNLabel><dc:Bounds x="138" y="145" width="64" height="14" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Task_Form_di" bpmnElement="Task_Form"><dc:Bounds x="240" y="80" width="130" height="80" /></bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Task_Closed_di" bpmnElement="Task_Closed"><dc:Bounds x="430" y="80" width="100" height="80" /></bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="End_di" bpmnElement="End"><dc:Bounds x="592" y="102" width="36" height="36" /></bpmndi:BPMNShape>
-      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1"><di:waypoint x="188" y="120" /><di:waypoint x="240" y="120" /></bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2"><di:waypoint x="370" y="120" /><di:waypoint x="430" y="120" /></bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3"><di:waypoint x="530" y="120" /><di:waypoint x="592" y="120" /></bpmndi:BPMNEdge>
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="pocListener">
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1"><dc:Bounds x="182" y="102" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="userTask_di" bpmnElement="userTask"><dc:Bounds x="270" y="80" width="100" height="80" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_11ecb5l_di" bpmnElement="Event_11ecb5l"><dc:Bounds x="432" y="102" width="36" height="36" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_01qtsvb_di" bpmnElement="Flow_01qtsvb"><di:waypoint x="218" y="120" /><di:waypoint x="270" y="120" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0x7njfc_di" bpmnElement="Flow_0x7njfc"><di:waypoint x="370" y="120" /><di:waypoint x="432" y="120" /></bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
 </bpmn:definitions>

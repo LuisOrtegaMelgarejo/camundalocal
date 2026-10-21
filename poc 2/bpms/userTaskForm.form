@@ -1,0 +1,11 @@
+{
+  "components": [
+    { "label": "Descripcion", "type": "textfield", "layout": { "row": "Row_1", "columns": null }, "id": "Field_descripcion", "key": "descripcion" },
+    { "label": "Monto", "type": "number", "layout": { "row": "Row_2", "columns": null }, "id": "Field_monto", "key": "monto" }
+  ],
+  "type": "default",
+  "id": "userTaskForm",
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.9.0",
+  "schemaVersion": 18
+}

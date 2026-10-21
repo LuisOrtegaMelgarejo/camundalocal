@@ -1,0 +1,139 @@
+{
+  "info": {
+    "name": "POC 2 - Job Worker vs User Task",
+    "description": "Prueba manual/automatica del backend de la POC 2. Requiere Camunda arriba, BPMN desplegados y el backend en {{baseUrl}} (npm start en poc 2/backend). Ejecutar en orden; para que los asserts de 'form' pasen conviene un delay de ~1000 ms entre requests (postman collection run --delay-request 1000).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "ticketA", "value": "" },
+    { "key": "ticketB", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "0. Config del backend",
+      "request": { "method": "GET", "url": "{{baseUrl}}/config" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('200 OK', () => pm.response.to.have.status(200));",
+        "const c = pm.response.json();",
+        "pm.test('tiene jobTimeoutMs', () => pm.expect(c.jobTimeoutMs).to.be.a('number'));",
+        "pm.collectionVariables.set('jobTimeoutMs', c.jobTimeoutMs);"
+      ] } }]
+    },
+    {
+      "name": "0b. Reset de datos y metricas",
+      "request": { "method": "POST", "url": "{{baseUrl}}/reset" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('200 OK', () => pm.response.to.have.status(200));"
+      ] } }]
+    },
+    {
+      "name": "1A. Crear ticket - Job Worker",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/tickets",
+        "body": { "mode": "raw", "raw": "{ \"variant\": \"jobworker\" }" }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('201 Created', () => pm.response.to.have.status(201));",
+        "const t = pm.response.json();",
+        "pm.test('instancia de proceso creada', () => pm.expect(t.process_instance_key).to.be.a('string'));",
+        "pm.collectionVariables.set('ticketA', t.id);"
+      ] } }]
+    },
+    {
+      "name": "1B. Crear ticket - User Task",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/tickets",
+        "body": { "mode": "raw", "raw": "{ \"variant\": \"usertask\" }" }
+      },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('201 Created', () => pm.response.to.have.status(201));",
+        "const t = pm.response.json();",
+        "pm.test('instancia de proceso creada', () => pm.expect(t.process_instance_key).to.be.a('string'));",
+        "pm.collectionVariables.set('ticketB', t.id);"
+      ] } }]
+    },
+    {
+      "name": "2A. Ticket A: el form ya se creo",
+      "request": { "method": "GET", "url": "{{baseUrl}}/tickets/{{ticketA}}" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "const t = pm.response.json();",
+        "pm.test('estado FORM_PENDING', () => pm.expect(t.status).to.eql('FORM_PENDING'));",
+        "pm.test('form creado', () => pm.expect(t.form).to.be.a('string'));",
+        "pm.test('guardo el job_key para completarlo luego', () => pm.expect(t.job_key).to.be.a('string'));"
+      ] } }]
+    },
+    {
+      "name": "2B. Ticket B: el form ya se creo",
+      "request": { "method": "GET", "url": "{{baseUrl}}/tickets/{{ticketB}}" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "const t = pm.response.json();",
+        "pm.test('estado FORM_PENDING', () => pm.expect(t.status).to.eql('FORM_PENDING'));",
+        "pm.test('form creado', () => pm.expect(t.form).to.be.a('string'));",
+        "pm.test('guardo el user_task_key del listener', () => pm.expect(t.user_task_key).to.be.a('string'));"
+      ] } }]
+    },
+    {
+      "name": "3. Esperar reenvios (solo para ver duplicados en A)",
+      "request": { "method": "GET", "url": "{{baseUrl}}/report" },
+      "event": [
+        { "listen": "prerequest", "script": { "type": "text/javascript", "exec": [
+          "// Espera 2.5 x timeout para que A reciba varios reenvios.",
+          "const wait = Number(pm.collectionVariables.get('jobTimeoutMs') || 10000) * 2.5;",
+          "setTimeout(() => {}, wait);"
+        ] } },
+        { "listen": "test", "script": { "type": "text/javascript", "exec": [
+          "const r = pm.response.json();",
+          "pm.test('B recibio 1 sola notificacion', () => pm.expect(r.usertask.volumetry.perTicketMax).to.eql(1));",
+          "pm.test('B sin duplicados', () => pm.expect(r.usertask.volumetry.duplicatesDiscarded).to.eql(0));",
+          "console.log('A notificaciones/ticket:', r.jobworker.volumetry.perTicketAvg, '| duplicados:', r.jobworker.volumetry.duplicatesDiscarded);"
+        ] } }
+      ]
+    },
+    {
+      "name": "4A. Done ticket A (completa el job)",
+      "request": { "method": "POST", "url": "{{baseUrl}}/tickets/{{ticketA}}/done" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('200 OK', () => pm.response.to.have.status(200));",
+        "pm.test('estado DONE o CLOSED', () => pm.expect(['DONE', 'CLOSED']).to.include(pm.response.json().status));"
+      ] } }]
+    },
+    {
+      "name": "4B. Done ticket B (completa la user task por REST)",
+      "request": { "method": "POST", "url": "{{baseUrl}}/tickets/{{ticketB}}/done" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('200 OK', () => pm.response.to.have.status(200));",
+        "pm.test('estado DONE o CLOSED', () => pm.expect(['DONE', 'CLOSED']).to.include(pm.response.json().status));"
+      ] } }]
+    },
+    {
+      "name": "5A. Ticket A cerrado por el motor",
+      "request": { "method": "GET", "url": "{{baseUrl}}/tickets/{{ticketA}}" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('el BPMN avanzo hasta ticket-closed', () => pm.expect(pm.response.json().status).to.eql('CLOSED'));"
+      ] } }]
+    },
+    {
+      "name": "5B. Ticket B cerrado por el motor",
+      "request": { "method": "GET", "url": "{{baseUrl}}/tickets/{{ticketB}}" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('el BPMN avanzo hasta ticket-closed', () => pm.expect(pm.response.json().status).to.eql('CLOSED'));"
+      ] } }]
+    },
+    {
+      "name": "6. Reporte de metricas (JSON)",
+      "request": { "method": "GET", "url": "{{baseUrl}}/report" },
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "const r = pm.response.json();",
+        "pm.test('ambos tickets cerrados', () => { pm.expect(r.jobworker.closed).to.eql(1); pm.expect(r.usertask.closed).to.eql(1); });",
+        "pm.test('ninguna entrega despues del done', () => { pm.expect(r.jobworker.volumetry.deliveriesAfterDone).to.eql(0); pm.expect(r.usertask.volumetry.deliveriesAfterDone).to.eql(0); });",
+        "console.log('A:', JSON.stringify(r.jobworker.volumetry));",
+        "console.log('B:', JSON.stringify(r.usertask.volumetry));"
+      ] } }]
+    }
+  ]
+}

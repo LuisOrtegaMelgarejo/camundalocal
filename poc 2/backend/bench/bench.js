@@ -12,6 +12,8 @@ import { renderMarkdown } from '../src/report.js'
 const API = process.env.API ?? 'http://localhost:3000'
 const TICKETS = Number(process.env.TICKETS ?? 20) // por alternativa
 const DONE_AFTER_MS = Number(process.env.DONE_AFTER_MS ?? 65_000) // lo que tarda el usuario
+const RUN_VARIANTS = (process.env.VARIANTS_TO_RUN ?? 'jobworker,usertask').split(',') // p. ej. solo usertask
+const CONCURRENCY = Number(process.env.CONCURRENCY ?? 1) // creaciones en paralelo (ráfaga)
 const CREATE_SPACING_MS = Number(process.env.CREATE_SPACING_MS ?? 100)
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
@@ -27,26 +29,30 @@ async function call(method, path, body) {
 }
 
 const cfg = await call('GET', '/config')
-console.log(`Backend jobTimeout=${cfg.jobTimeoutMs}ms | ${TICKETS} tickets x 2 alternativas | usuario tarda ${DONE_AFTER_MS}ms`)
+console.log(`Backend jobTimeout=${cfg.jobTimeoutMs}ms | ${TICKETS} tickets x ${RUN_VARIANTS.length} alternativa(s) [${RUN_VARIANTS}] | usuario tarda ${DONE_AFTER_MS}ms | concurrencia de creación ${CONCURRENCY}`)
 await call('POST', '/reset')
 
 const started = Date.now()
 const lifecycle = []
-for (let i = 0; i < TICKETS; i++) {
-  for (const variant of ['jobworker', 'usertask']) {
+// Cola de creación con CONCURRENCY trabajadores: con valores altos todos los tickets nacen casi a la
+// vez (ráfaga) y las notificaciones se encolan en los workers.
+const pending = []
+for (let i = 0; i < TICKETS; i++) for (const variant of RUN_VARIANTS) pending.push(variant)
+async function creator() {
+  while (pending.length) {
+    const variant = pending.shift()
     const t = await call('POST', '/tickets', { variant })
-    lifecycle.push(
-      sleep(DONE_AFTER_MS).then(() => call('POST', `/tickets/${t.id}/done`)),
-    )
-    await sleep(CREATE_SPACING_MS)
+    lifecycle.push(sleep(DONE_AFTER_MS).then(() => call('POST', `/tickets/${t.id}/done`)))
+    if (CREATE_SPACING_MS) await sleep(CREATE_SPACING_MS)
   }
 }
+await Promise.all(Array.from({ length: CONCURRENCY }, creator))
 console.log(`Tickets creados en ${Date.now() - started}ms. Esperando al usuario...`)
 await Promise.all(lifecycle)
 
 // Esperar a que todos los procesos avancen y dejar una ventana para detectar
 // entregas tardias (no deberia haber ninguna tras el done).
-const expected = TICKETS * 2
+const expected = TICKETS * RUN_VARIANTS.length
 for (let i = 0; i < 60; i++) {
   const r = await call('GET', '/report')
   if (r.jobworker.closed + r.usertask.closed >= expected) break
@@ -57,7 +63,7 @@ await sleep(Math.min(cfg.jobTimeoutMs, 30_000) + 2000)
 const report = await call('GET', '/report')
 const out = fileURLToPath(new URL('../results/', import.meta.url))
 mkdirSync(out, { recursive: true })
-const file = `${out}run-${new Date().toISOString().replace(/[:.]/g, '-')}.md`
+const file = `${out}run-${cfg.target}-${new Date().toISOString().replace(/[:.]/g, '-')}.md`
 writeFileSync(file, renderMarkdown(report, { ...cfg, tickets: TICKETS, doneAfterMs: DONE_AFTER_MS }))
 
 const row = (label, s) =>
@@ -66,6 +72,7 @@ for (const [variant, r] of Object.entries(report)) {
   console.log(`\n=== ${variant} (tickets=${r.tickets}, cerrados=${r.closed}) ===`)
   for (const [k, s] of Object.entries(r.latencyMs)) console.log(row(k, s))
   const v = r.volumetry
+  console.log(`  cola máxima: ${v.peakBacklogTickets} tickets | handlers pico: ${v.peakInFlightHandlers}/${v.workerCapacity} | utilización worker: ${v.workerBusyPct}% | notif/s prom ${v.notifPerSecAvg} pico ${v.notifPeakPerSec}`)
   console.log(`  notificaciones: ${v.notificationsReceived} (${v.perTicketAvg}/ticket, max ${v.perTicketMax}) | duplicados: ${v.duplicatesDiscarded} (${v.duplicatesPct}%) | tras done: ${v.deliveriesAfterDone}`)
   console.log(row('redeliveryGapMs', v.redeliveryGapMs))
 }

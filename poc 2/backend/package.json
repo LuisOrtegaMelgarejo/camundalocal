@@ -3,12 +3,16 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22.13" },
+  "engines": {
+    "node": ">=22.13"
+  },
   "scripts": {
     "deploy": "node src/deploy.js",
     "start": "node src/server.js",
     "bench": "node bench/bench.js",
-    "report": "node src/report.js"
+    "report": "node src/report.js",
+    "poc": "node ../scripts/run-poc2.mjs",
+    "sweep": "node ../scripts/sweep-open-time.mjs"
   },
   "dependencies": {
     "@camunda8/sdk": "8.8.18"
